@@ -22,13 +22,25 @@ def send_notification(title, message):
     print(f"Notification sent: {title}")
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True)
-    page = browser.new_page()
+    browser = p.chromium.launch(
+        headless=True,
+        args=['--disable-blink-features=AutomationControlled']
+    )
+    context = browser.new_context(
+        user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+    )
+    page = context.new_page()
     try:
         print("Going to login page...")
-        page.goto('https://octopus.energy/login/')
-        page.wait_for_load_state('networkidle')
+        page.goto('https://octopus.energy/login/', wait_until='domcontentloaded')
         page.wait_for_timeout(3000)
+
+        try:
+            page.click('button:has-text("Accept all"), button:has-text("Accept"), #onetrust-accept-btn-handler', timeout=3000)
+            print("Accepted cookies")
+            page.wait_for_timeout(1000)
+        except Exception:
+            print("No cookie consent dialog")
 
         # Print all inputs found
         inputs = page.locator('input').all()
@@ -36,24 +48,20 @@ with sync_playwright() as p:
         for i, inp in enumerate(inputs):
             print(f"Input {i}: type={inp.get_attribute('type')} name={inp.get_attribute('name')} placeholder={inp.get_attribute('placeholder')}")
 
-        # Click the email field and type
-        page.locator('input').nth(0).click()
-        page.wait_for_timeout(500)
-        page.keyboard.type(email)
+        page.fill('input[type="email"]', email)
         print("Typed email")
 
-        # Click the password field and type
-        page.locator('input').nth(1).click()
-        page.wait_for_timeout(500)
-        page.keyboard.type(password)
+        page.fill('input[type="password"]', password)
         print("Typed password")
 
         page.screenshot(path='screenshot_filled.png')
 
-        # Press Enter to submit
-        page.keyboard.press('Enter')
-        page.wait_for_load_state('networkidle')
-        page.wait_for_timeout(4000)
+        page.click('button[type="submit"]')
+        try:
+            page.wait_for_url(lambda u: 'login' not in u, timeout=10000)
+        except Exception:
+            page.wait_for_timeout(4000)
+
         page.screenshot(path='screenshot_after_login.png')
         print(f"After login URL: {page.url}")
 

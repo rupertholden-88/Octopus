@@ -47,9 +47,9 @@ jobs:
         run: |
           python3 check.py
 
-      - name: Upload screenshot
+      - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: screenshot
-          path: screenshot.png
+          name: screenshots
+          path: screenshot*.png
