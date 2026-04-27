@@ -1,6 +1,7 @@
 import os
 import urllib.request
 from playwright.sync_api import sync_playwright
+from playwright_stealth import stealth_sync
 
 email = os.environ['OCTOPUS_EMAIL']
 password = os.environ['OCTOPUS_PASSWORD']
@@ -30,6 +31,7 @@ with sync_playwright() as p:
         user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
     )
     page = context.new_page()
+    stealth_sync(page)
     try:
         print("Going to login page...")
         page.goto('https://octopus.energy/login/', wait_until='domcontentloaded')
