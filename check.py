@@ -25,49 +25,60 @@ with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     page = browser.new_page()
     try:
-        print("Logging in...")
+        print("Going to login page...")
         page.goto('https://octopus.energy/login/')
         page.wait_for_load_state('networkidle')
-        page.wait_for_timeout(2000)
-
-        # Fill email
-        email_input = page.locator('input[type="email"], input[placeholder*="mail"], input[placeholder*="Email"]').first
-        email_input.fill(email)
-        print("Email filled")
-
-        # Fill password
-        password_input = page.locator('input[type="password"], input[placeholder*="assword"]').first
-        password_input.fill(password)
-        print("Password filled")
-
-        page.screenshot(path='screenshot_before_submit.png')
-
-        # Click sign in
-        page.locator('button:has-text("Sign in"), input[type="submit"]').first.click()
-        page.wait_for_load_state('networkidle')
         page.wait_for_timeout(3000)
+
+        # Print all inputs found
+        inputs = page.locator('input').all()
+        print(f"Found {len(inputs)} inputs")
+        for i, inp in enumerate(inputs):
+            print(f"Input {i}: type={inp.get_attribute('type')} name={inp.get_attribute('name')} placeholder={inp.get_attribute('placeholder')}")
+
+        # Click the email field and type
+        page.locator('input').nth(0).click()
+        page.wait_for_timeout(500)
+        page.keyboard.type(email)
+        print("Typed email")
+
+        # Click the password field and type
+        page.locator('input').nth(1).click()
+        page.wait_for_timeout(500)
+        page.keyboard.type(password)
+        print("Typed password")
+
+        page.screenshot(path='screenshot_filled.png')
+
+        # Press Enter to submit
+        page.keyboard.press('Enter')
+        page.wait_for_load_state('networkidle')
+        page.wait_for_timeout(4000)
         page.screenshot(path='screenshot_after_login.png')
-        print("Clicked sign in")
+        print(f"After login URL: {page.url}")
 
-        # Navigate to offer page
-        page.goto(url)
-        page.wait_for_load_state('networkidle')
-        page.wait_for_timeout(3000)
-        page.screenshot(path='screenshot.png')
-
-        content = page.content().lower()
-        print(f"Content length: {len(content)}")
-
-        positive = ['claim', 'get your code', 'redeem', 'voucher', 'code available', 'cafe nero', 'caffe nero']
-        negative = ['no codes', 'check back', 'come back', 'not available', 'all gone', 'none available', 'no reward']
-        found_positive = any(kw in content for kw in positive)
-        found_negative = any(kw in content for kw in negative)
-        print(f"Positive: {found_positive}, Negative: {found_negative}")
-
-        if found_positive and not found_negative:
-            send_notification('☕ Cafe Nero Code Available!', 'Quick! Open the Octopus app now!')
+        if 'login' in page.url:
+            print("Still on login page - login failed")
         else:
-            print("No code available")
+            print("Login succeeded, going to offer page...")
+            page.goto(url)
+            page.wait_for_load_state('networkidle')
+            page.wait_for_timeout(3000)
+            page.screenshot(path='screenshot.png')
+
+            content = page.content().lower()
+            print(f"Content length: {len(content)}")
+
+            positive = ['claim', 'get your code', 'redeem', 'voucher', 'code available', 'cafe nero', 'caffe nero']
+            negative = ['no codes', 'check back', 'come back', 'not available', 'all gone', 'none available', 'no reward']
+            found_positive = any(kw in content for kw in positive)
+            found_negative = any(kw in content for kw in negative)
+            print(f"Positive: {found_positive}, Negative: {found_negative}")
+
+            if found_positive and not found_negative:
+                send_notification('☕ Cafe Nero Code Available!', 'Quick! Open the Octopus app now!')
+            else:
+                print("No code available")
 
     except Exception as e:
         print(f"Error: {e}")
