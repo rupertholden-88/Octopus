@@ -23,8 +23,10 @@ def send_notification(title, message):
     print(f"Notification sent: {title}")
 
 with sync_playwright() as p:
+    ci = os.environ.get('CI', '').lower() in ('1', 'true', 'yes')
+    github_actions = os.environ.get('GITHUB_ACTIONS', '').lower() == 'true'
     browser = p.chromium.launch(
-        headless=False,
+        headless=ci or github_actions,
         args=["--disable-blink-features=AutomationControlled"]
     )
     context = browser.new_context(
@@ -51,6 +53,7 @@ with sync_playwright() as p:
         except Exception:
             print("No cookie consent dialog")
 
+        # Print all inputs found
         inputs = page.locator('input').all()
         print(f"Found {len(inputs)} inputs")
         for i, inp in enumerate(inputs):
