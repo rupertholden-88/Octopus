@@ -1,7 +1,11 @@
 import os
 import urllib.request
 from playwright.sync_api import sync_playwright
+<<<<<<< HEAD
+from playwright_stealth import stealth
+=======
 from playwright_stealth import stealth_sync
+>>>>>>> ec85aec36eacf980dc9802e1cc46b6b50bd35329
 
 email = os.environ['OCTOPUS_EMAIL']
 password = os.environ['OCTOPUS_PASSWORD']
@@ -23,6 +27,24 @@ def send_notification(title, message):
     print(f"Notification sent: {title}")
 
 with sync_playwright() as p:
+<<<<<<< HEAD
+    browser = p.chromium.launch(
+        headless=False,
+        args=["--disable-blink-features=AutomationControlled"]
+    )
+    context = browser.new_context(
+        user_agent=(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/125.0.0.0 Safari/537.36"
+        ),
+        viewport={"width": 1920, "height": 1080},
+        locale="en-US",
+        timezone_id="Europe/London",
+    )
+    page = context.new_page()
+    stealth(page)
+=======
     browser = p.chromium.launch(
         headless=True,
         args=['--disable-blink-features=AutomationControlled']
@@ -32,6 +54,7 @@ with sync_playwright() as p:
     )
     page = context.new_page()
     stealth_sync(page)
+>>>>>>> ec85aec36eacf980dc9802e1cc46b6b50bd35329
     try:
         print("Going to login page...")
         page.goto('https://octopus.energy/login/', wait_until='domcontentloaded')
