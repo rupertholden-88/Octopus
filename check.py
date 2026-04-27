@@ -51,7 +51,6 @@ with sync_playwright() as p:
         except Exception:
             print("No cookie consent dialog")
 
-        # Print all inputs found
         inputs = page.locator('input').all()
         print(f"Found {len(inputs)} inputs")
         for i, inp in enumerate(inputs):
