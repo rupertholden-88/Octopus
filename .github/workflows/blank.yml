@@ -1,0 +1,105 @@
+cat > /workspaces/Octopus/.github/workflows/octopus-check.yml << 'ENDOFFILE'
+name: Octopus Cafe Nero Code Checker
+
+on:
+  schedule:
+    - cron: '30 5 * * *'
+    - cron: '35 5 * * *'
+    - cron: '40 5 * * *'
+    - cron: '45 5 * * *'
+    - cron: '50 5 * * *'
+    - cron: '55 5 * * *'
+    - cron: '0 6 * * *'
+    - cron: '5 6 * * *'
+    - cron: '10 6 * * *'
+    - cron: '15 6 * * *'
+    - cron: '20 6 * * *'
+    - cron: '25 6 * * *'
+    - cron: '30 6 * * *'
+    - cron: '35 6 * * *'
+    - cron: '40 6 * * *'
+    - cron: '45 6 * * *'
+    - cron: '50 6 * * *'
+    - cron: '55 6 * * *'
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install playwright
+          playwright install chromium
+
+      - name: Check for Cafe Nero code
+        env:
+          OCTOPUS_EMAIL: ${{ secrets.OCTOPUS_EMAIL }}
+          OCTOPUS_PASSWORD: ${{ secrets.OCTOPUS_PASSWORD }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          OCTOPUS_URL: https://octopus.energy/dashboard/new/accounts/A-5980A65B/octoplus/partner/offer-group/925
+        run: |
+          python3 << 'EOF'
+          import os
+          import urllib.request
+          from playwright.sync_api import sync_playwright
+
+          email = os.environ['OCTOPUS_EMAIL']
+          password = os.environ['OCTOPUS_PASSWORD']
+          ntfy_topic = os.environ['NTFY_TOPIC']
+          url = os.environ['OCTOPUS_URL']
+
+          def send_notification(title, message):
+              req = urllib.request.Request(
+                  f'https://ntfy.sh/{ntfy_topic}',
+                  data=message.encode('utf-8'),
+                  headers={
+                      'Title': title,
+                      'Priority': 'urgent',
+                      'Tags': 'coffee,money',
+                  },
+                  method='POST'
+              )
+              urllib.request.urlopen(req)
+              print(f"Notification sent: {title}")
+
+          with sync_playwright() as p:
+              browser = p.chromium.launch(headless=True)
+              page = browser.new_page()
+              try:
+                  print("Logging in to Octopus...")
+                  page.goto('https://octopus.energy/login/')
+                  page.wait_for_load_state('networkidle')
+                  page.fill('input[type="email"], input[name="email"], #id_username', email)
+                  page.fill('input[type="password"], input[name="password"], #id_password', password)
+                  page.click('button[type="submit"], input[type="submit"]')
+                  page.wait_for_load_state('networkidle')
+                  print("Logged in, navigating to offer page...")
+                  page.goto(url)
+                  page.wait_for_load_state('networkidle')
+                  page.wait_for_timeout(3000)
+                  content = page.content().lower()
+                  print(f"Page content length: {len(content)}")
+                  positive = ['claim', 'get your code', 'redeem', 'voucher', 'code available', 'cafe nero', 'caffe nero']
+                  negative = ['no codes', 'check back', 'come back', 'not available', 'all gone', 'none available', 'no reward']
+                  found_positive = any(kw in content for kw in positive)
+                  found_negative = any(kw in content for kw in negative)
+                  print(f"Positive: {found_positive}, Negative: {found_negative}")
+                  if found_positive and not found_negative:
+                      send_notification('☕ Cafe Nero Code Available!', 'Quick! A Cafe Nero code is available on Octopus. Open the app now!')
+                  else:
+                      print("No code available")
+              except Exception as e:
+                  print(f"Error: {e}")
+              finally:
+                  browser.close()
+          EOF
+ENDOFFILE
