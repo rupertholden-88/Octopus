@@ -34,18 +34,26 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-v1
+
       - name: Install dependencies
-        run: |
-          pip install playwright
-          playwright install chromium
+        run: pip install playwright
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: playwright install chromium
 
       - name: Check for Cafe Nero code
         env:
           OCTOPUS_EMAIL: ${{ secrets.OCTOPUS_EMAIL }}
           OCTOPUS_PASSWORD: ${{ secrets.OCTOPUS_PASSWORD }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-        run: |
-          python3 check.py
+        run: python3 check.py
 
       - name: Upload screenshots
         if: always()
